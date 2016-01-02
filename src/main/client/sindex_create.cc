@@ -34,7 +34,8 @@ extern "C" {
 #define BIN_NAME 2
 #define INDEX_NAME 3
 #define INDEX_TYPE 4
-#define INFO_POLICY 5
+#define INDEX_TYPE_COLLECTION 5
+#define INFO_POLICY 6
 using namespace v8;
 
 /*******************************************************************************
@@ -59,6 +60,7 @@ typedef struct AsyncData {
     as_bin_name bin;
     char * index;
     as_index_datatype type;
+    as_index_type collection;
     LogInfo * log;
     Nan::Persistent<Function> callback;
 } AsyncData;
@@ -176,8 +178,24 @@ static void * prepare(ResolveArgs(info))
         return data;
     }
 
+    if ( (set_present && info[INDEX_TYPE_COLLECTION]->IsNumber()) || (!set_present && info[INDEX_TYPE_COLLECTION-1]->IsNumber())) {
+        int type_pos = INDEX_TYPE_COLLECTION;
+        if( !set_present)
+        {
+            type_pos = INDEX_TYPE_COLLECTION-1;
+        }
+        data->collection = (as_index_type)info[type_pos]->ToInteger()->Value();
+        as_v8_detail(log, "The type of the index collection %d", data->type);
+    }
+    else
+    {
+        as_v8_error(log, "index type collection should be an integer enumerator");
+        COPY_ERR_MESSAGE(data->err, AEROSPIKE_ERR_PARAM);
+        data->param_err = 1;
+        return data;
+    }
 
-    if ( (argc > 6 && set_present) || (argc > 5 && !set_present)) {
+    if ( (argc > 7 && set_present) || (argc > 6 && !set_present)) {
         int ipolicy_pos = INFO_POLICY;
         if( !set_present )
         {
@@ -222,8 +240,8 @@ static void execute(uv_work_t * req)
 
     if ( data->param_err == 0) {
         as_v8_debug(log, "Invoking aerospike index create");
-        aerospike_index_create(as, err, &data->task, policy, data->ns,
-                data->set, data->bin, data->index, data->type);
+        aerospike_index_create_complex(as, err, &data->task, policy, data->ns,
+                data->set, data->bin, data->index, data->collection, data->type);
     }
 
 }
