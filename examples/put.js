@@ -21,7 +21,7 @@
  ******************************************************************************/
 
 var fs = require('fs');
-var aerospike = require('../');
+var aerospike = require('aerospike');
 var yargs = require('yargs');
 var iteration = require('./iteration');
 
@@ -154,7 +154,7 @@ function run(client) {
     var key = {
         ns: argv.namespace,
         set: argv.set,
-        key: keyv + iteration.current
+        key: keyv + iteration.current()
     };
 
     var bins = {
